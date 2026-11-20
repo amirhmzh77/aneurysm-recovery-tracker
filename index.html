@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Recovery">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0f3d2e">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Recovery Tracker</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f3f5f2;color:#1b2a24;min-height:100dvh;padding-bottom:84px}
+header{background:#0f3d2e;color:#fff;padding:calc(env(safe-area-inset-top) + 12px) 16px 12px}
+header h1{margin:0;font-size:18px;font-weight:650}
+header .sub{font-size:13px;opacity:.85;margin-top:2px}
+.wrap{padding:12px 14px;max-width:640px;margin:0 auto}
+.card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(0,0,0,.07)}
+.card h2{margin:0 0 10px;font-size:15px;color:#0f3d2e}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid #edf0ec}
+.row:first-of-type{border-top:0}
+.row label.t{flex:1;font-size:15px;line-height:1.3}
+.tick{width:30px;height:30px;border-radius:8px;border:2px solid #9fb3a8;background:#fff;flex:none;display:flex;align-items:center;justify-content:center;font-size:18px;color:#fff}
+.tick.on{background:#1f7a55;border-color:#1f7a55}
+.seg{display:flex;gap:4px;flex:none}
+.seg button{border:1.5px solid #c5d1ca;background:#fff;border-radius:8px;padding:7px 10px;font-size:13px;color:#33453c}
+.seg button.on{background:#1f7a55;border-color:#1f7a55;color:#fff}
+.seg button.on.bad{background:#c0392b;border-color:#c0392b}
+.seg button.on.warn{background:#d98a00;border-color:#d98a00}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.field label{display:block;font-size:12px;color:#5a6b62;margin-bottom:3px}
+input[type=number],input[type=text],input[type=date],input[type=tel],textarea,select{width:100%;padding:10px;border:1.5px solid #c5d1ca;border-radius:10px;font-size:16px;background:#fff;color:#1b2a24;font-family:inherit}
+textarea{min-height:70px}
+.ha{display:flex;gap:3px;flex-wrap:wrap}
+.ha button{width:calc(100%/11 - 3px);min-width:26px;padding:8px 0;border:1.5px solid #c5d1ca;background:#fff;border-radius:7px;font-size:13px}
+.ha button.on{background:#1f7a55;color:#fff;border-color:#1f7a55}
+.ha button.on.hi{background:#c0392b;border-color:#c0392b}
+.alert{border-radius:12px;padding:12px 14px;margin-bottom:12px;font-size:14px;line-height:1.4}
+.alert.red{background:#fdeaea;border:1.5px solid #c0392b;color:#7a1f16}
+.alert.amber{background:#fff4dc;border:1.5px solid #d98a00;color:#6b4600}
+.alert b{display:block;margin-bottom:3px}
+.alert a{color:inherit;font-weight:700}
+.prog{height:8px;background:#e1e8e3;border-radius:6px;overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;background:#1f7a55;width:0}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:#fff;border-top:1px solid #dbe3dd;padding-bottom:env(safe-area-inset-bottom)}
+nav button{flex:1;border:0;background:none;padding:10px 0 9px;font-size:11px;color:#6b7c73}
+nav button span{display:block;font-size:20px;margin-bottom:2px}
+nav button.on{color:#0f3d2e;font-weight:700}
+.btn{display:block;width:100%;padding:13px;border:0;border-radius:12px;background:#1f7a55;color:#fff;font-size:16px;font-weight:600;margin-top:8px}
+.btn.sec{background:#e5eee8;color:#0f3d2e}
+.btn.red{background:#c0392b}
+.small{font-size:12.5px;color:#5a6b62;line-height:1.4}
+.date-row{padding:10px 0;border-top:1px solid #edf0ec}
+.date-row:first-of-type{border-top:0}
+.date-row .l{font-size:15px;margin-bottom:5px}
+.cd{font-size:12.5px;color:#1f7a55;margin-top:3px}
+.cd.past{color:#8a6d00}
+ul.w{margin:0;padding-left:20px;font-size:14.5px;line-height:1.55}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:7px 4px;text-align:left;border-top:1px solid #edf0ec}
+th{font-size:11px;color:#5a6b62;border-top:0}
+td.f{color:#c0392b;font-weight:700}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:#1b2a24;color:#fff;padding:9px 16px;border-radius:20px;font-size:13px;opacity:0;transition:opacity .25s;pointer-events:none}
+.toast.show{opacity:1}
+.hide{display:none}
+.datebar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.datebar button{border:0;background:#e5eee8;border-radius:10px;padding:8px 14px;font-size:16px;color:#0f3d2e}
+.datebar div{font-weight:650;text-align:center}
+</style>
+</head>
+<body>
+<header>
+  <h1>Recovery Tracker</h1>
+  <div class="sub">Daily and weekly recovery log</div>
+</header>
+<div class="wrap">
+  <div id="alerts"></div>
+
+  <!-- TODAY -->
+  <section id="tab-today">
+    <div class="datebar"><button id="prev">‹</button><div id="dlabel"></div><button id="next">›</button></div>
+    <div class="card">
+      <h2>Checks <span id="count" class="small"></span></h2>
+      <div class="prog"><i id="bar"></i></div>
+      <div id="checks"></div>
+    </div>
+    <div class="card">
+      <h2>Readings</h2>
+      <div class="grid">
+        <div class="field"><label>BP systolic (top)</label><input type="number" inputmode="numeric" id="sys" placeholder="e.g. 120"></div>
+        <div class="field"><label>BP diastolic (bottom)</label><input type="number" inputmode="numeric" id="dia" placeholder="e.g. 80"></div>
+        <div class="field"><label>Pulse</label><input type="number" inputmode="numeric" id="pulse" placeholder="bpm"></div>
+        <div class="field"><label>Temperature °C</label><input type="number" inputmode="decimal" step="0.1" id="temp" placeholder="e.g. 36.8"></div>
+        <div class="field"><label>Sleep (hours)</label><input type="number" inputmode="decimal" step="0.5" id="sleep" placeholder="e.g. 7"></div>
+        <div class="field"><label>Naps in the day</label><select id="naps"><option value="">–</option><option>None</option><option>Short</option><option>Long / hard to wake</option></select></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label>Headache (0 = none, 10 = worst)</label><div class="ha" id="ha"></div></div>
+    </div>
+    <div class="card">
+      <h2>Right eye</h2>
+      <div id="eye"></div>
+    </div>
+    <div class="card">
+      <h2>Notes</h2>
+      <textarea id="notes" placeholder="Anything new or unusual today"></textarea>
+    </div>
+  </section>
+
+  <!-- WEEKLY -->
+  <section id="tab-week" class="hide">
+    <div class="datebar"><button id="wprev">‹</button><div id="wlabel"></div><button id="wnext">›</button></div>
+    <div class="card"><h2>Compared with last week</h2><div id="wseg"></div></div>
+    <div class="card">
+      <h2>Eye &amp; body</h2>
+      <div class="field"><label>Right eyelid opening</label>
+        <select id="wlid"><option value="">–</option><option>Barely open (¼)</option><option>Half open (½)</option><option>Mostly open (¾)</option><option>Fully open</option></select></div>
+      <div class="row"><label class="t">Weekly eye photo taken (same light, dated)</label><div class="tick" id="wphoto"></div></div>
+      <div class="row"><label class="t">Wearing / using eye drops as advised</label><div class="tick" id="wdrops"></div></div>
+      <div class="field" style="margin-top:10px"><label>Weight (kg)</label><input type="number" inputmode="decimal" step="0.1" id="wkg" placeholder="optional"></div>
+    </div>
+    <div class="card"><h2>Weekly notes</h2><textarea id="wnotes" placeholder="Walking distance, memory, mood, new concerns"></textarea></div>
+  </section>
+
+  <!-- DATES -->
+  <section id="tab-dates" class="hide">
+    <div class="card"><h2>Appointments &amp; milestones</h2><div id="dates"></div>
+      <p class="small">Set a date for each. Add reminders in your phone's Calendar too, since this app can't ring when closed.</p></div>
+    <div class="card"><h2>Ask the team</h2><div id="qs"></div></div>
+    <div class="card"><h2>Settings</h2>
+      <div class="grid">
+        <div class="field"><label>Clinic / ward phone</label><input type="tel" id="clinic" placeholder="after-hours number"></div>
+        <div class="field"><label>BP top limit (from doctor)</label><input type="number" inputmode="numeric" id="bplimit" placeholder="e.g. 140"></div>
+      </div>
+      <p class="small">If a reading goes above the limit, the app will flag it. Use the number your doctor gave you.</p>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="tab-hist" class="hide">
+    <div class="card"><h2>Last 14 days</h2><div id="hist"></div>
+      <button class="btn" id="copy">Copy summary for the doctor</button>
+      <button class="btn sec" id="wipe">Erase all data on this phone</button></div>
+  </section>
+
+  <!-- WARN -->
+  <section id="tab-warn" class="hide">
+    <div class="card" style="border:2px solid #c0392b">
+      <h2 style="color:#c0392b">Call 999 now for</h2>
+      <ul class="w">
+        <li>Sudden severe "worst" headache, or headache that keeps getting worse</li>
+        <li>Repeated vomiting, or growing drowsiness / hard to wake</li>
+        <li>New weakness, numbness, face drooping, slurred speech, confusion</li>
+        <li>Seizure or fainting</li>
+        <li>A new large pupil, or sudden vision loss</li>
+      </ul>
+      <a class="btn red" href="tel:999" style="text-align:center;text-decoration:none">Call 999</a>
+    </div>
+    <div class="card" style="border:2px solid #d98a00">
+      <h2 style="color:#8a5a00">Call neurosurgery the same day for</h2>
+      <ul class="w">
+        <li>Fever 38°C or above, or chills</li>
+        <li>Redness, swelling, warmth or fluid at the scalp wound, shunt path (behind ear / neck) or belly</li>
+        <li>Headache worse day by day, or old pre-shunt symptoms returning</li>
+        <li>Belly pain or bloating</li>
+        <li>Eyelid droop clearly worse, other lid starting to droop, or new double vision</li>
+      </ul>
+      <a class="btn" id="callclinic" href="#" style="text-align:center;text-decoration:none;background:#d98a00">Call clinic</a>
+    </div>
+    <div class="card">
+      <h2>Good to know</h2>
+      <p class="small" style="margin:0">Droopy right eyelid: doctor expects 3 to 6 months to recover. Protect the eye, use drops if advised, take extra care on stairs. Do not drive until the doctor clears it.</p>
+      <p class="small">This app is a tracking aid only. It is not medical advice. When in doubt, call.</p>
+    </div>
+  </section>
+</div>
+
+<nav>
+  <button data-t="today" class="on"><span>✔️</span>Today</button>
+  <button data-t="week"><span>📅</span>Weekly</button>
+  <button data-t="dates"><span>🗓️</span>Dates</button>
+  <button data-t="hist"><span>📈</span>History</button>
+  <button data-t="warn"><span>🚨</span>Warning</button>
+</nav>
+<div class="toast" id="toast"></div>
+
+<script>
+function load(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+function $(s){return document.querySelector(s)}
+function pad(n){return String(n).padStart(2,'0')}
+function fmt(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function parse(s){var p=s.split('-');return new Date(+p[0],+p[1]-1,+p[2])}
+function toast(m){var t=$('#toast');t.textContent=m;t.classList.add('show');setTimeout(function(){t.classList.remove('show')},1600)}
+function vib(){try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+var days=load('rt_days',{}), weeks=load('rt_weeks',{}), cfg=load('rt_cfg',{clinic:'',bplimit:''}), qs=load('rt_q',{});
+var DATES_DEFAULT=[
+ {id:'neuro',label:'Neurosurgery review',date:'2027-01-14'},
+ {id:'eye',label:'Eye (ophthalmology) follow-up',date:''},
+ {id:'scan',label:'Follow-up scan (CT / CTA / MRA)',date:''},
+ {id:'shunt',label:'Shunt check',date:''},
+ {id:'eye3',label:'Eye recovery reassessment: 3 months',date:''},
+ {id:'eye6',label:'Eye recovery reassessment: 6 months',date:''}];
+var dates=load('rt_dates',DATES_DEFAULT);
+var QS=[
+ ['bp','Blood pressure target range from the doctor'],
+ ['meds','How long to take anti-seizure and BP medicines'],
+ ['scan','Is a follow-up scan planned, and when?'],
+ ['clip','Clip type, and is MRI safe? (carry a card / note)'],
+ ['shunt','Is the shunt valve programmable? Magnet precautions?'],
+ ['drive','When can she drive, fly, return to work?'],
+ ['after','After-hours number saved in phone'],
+ ['rehab','Rehab referral only if weakness, unsteadiness, thinking problems or severe tiredness appear']];
+
+var cur=fmt(new Date());
+function day(){return days[cur]||(days[cur]={})}
+
+// segmented critical checks: ok / problem
+var SEGS=[['alert','Awake normally, easy to wake'],['face','Smile even on both sides'],['arms','Both arms raise equally'],['speech','Speech clear, makes sense'],['orient','Knows day, place, people']];
+var TICKS=[['meds','All medicines taken'],['walk','Walking steady'],['wound','Wounds clean: scalp, shunt path, belly'],['eat','Eating and drinking OK, no vomiting'],['drops','Eye drops / eye care done']];
+
+function seg(opts,val,cb,id){
+  var d=document.createElement('div');d.className='seg';
+  opts.forEach(function(o){
+    var b=document.createElement('button');b.textContent=o[0];
+    if(val===o[1])b.className='on '+(o[2]||'');
+    b.onclick=function(){vib();cb(val===o[1]?'':o[1])};d.appendChild(b)});
+  return d;
+}
+function renderChecks(){
+  var el=$('#checks');el.innerHTML='';var D=day();
+  SEGS.forEach(function(s){
+    var r=document.createElement('div');r.className='row';
+    r.innerHTML='<label class="t">'+s[1]+'</label>';
+    r.appendChild(seg([['OK','ok'],['Problem','bad','bad']],D[s[0]],function(v){D[s[0]]=v;persist();renderChecks();renderAlerts()}));
+    el.appendChild(r)});
+  TICKS.forEach(function(t){
+    var r=document.createElement('div');r.className='row';
+    var on=D[t[0]]==='1';
+    r.innerHTML='<label class="t">'+t[1]+'</label><div class="tick'+(on?' on':'')+'">'+(on?'✓':'')+'</div>';
+    r.onclick=function(){vib();D[t[0]]=on?'':'1';persist();renderChecks()};
+    el.appendChild(r)});
+  var done=0,total=SEGS.length+TICKS.length;
+  SEGS.forEach(function(s){if(D[s[0]]==='ok')done++});
+  TICKS.forEach(function(t){if(D[t[0]]==='1')done++});
+  $('#count').textContent='· '+done+'/'+total;
+  $('#bar').style.width=(done/total*100)+'%';
+}
+function renderEye(){
+  var el=$('#eye');el.innerHTML='';var D=day();
+  var rows=[['Lid droop vs yesterday','droop',[['Better','better'],['Same','same','warn'],['Worse','worse','bad']]],
+            ['Double vision','dbl',[['None','none'],['Yes','yes','bad']]],
+            ['Pupils (compare both)','pupil',[['Same','same'],['Right larger','larger','bad']]],
+            ['Eye red, sore or dry','sore',[['No','no'],['Yes','yes','warn']]]];
+  rows.forEach(function(x){
+    var r=document.createElement('div');r.className='row';
+    r.innerHTML='<label class="t">'+x[0]+'</label>';
+    r.appendChild(seg(x[2],D[x[1]],function(v){D[x[1]]=v;persist();renderEye();renderAlerts()}));
+    el.appendChild(r)});
+}
+function renderHA(){
+  var el=$('#ha');el.innerHTML='';var D=day();
+  for(var i=0;i<=10;i++){(function(i){
+    var b=document.createElement('button');b.textContent=i;
+    if(D.ha===String(i))b.className='on'+(i>=8?' hi':'');
+    b.onclick=function(){vib();D.ha=D.ha===String(i)?'':String(i);persist();renderHA();renderAlerts()};el.appendChild(b)})(i)}
+}
+function bindInputs(){
+  ['sys','dia','pulse','temp','sleep','naps','notes'].forEach(function(k){
+    var e=$('#'+k);e.value=day()[k]||'';
+    e.oninput=e.onchange=function(){day()[k]=e.value;persist();renderAlerts()}});
+}
+function persist(){save('rt_days',days)}
+function dayAlerts(D){
+  var red=[],amb=[];
+  var bad=SEGS.filter(function(s){return D[s[0]]==='bad'}).map(function(s){return s[1]});
+  if(bad.length)red.push('Problem flagged: '+bad.join('; ')+'. These can be stroke or brain-pressure signs. Call 999.');
+  if(D.pupil==='larger')red.push('Right pupil larger than left. If this is new, treat it as urgent: call 999 or go to emergency.');
+  if(D.ha&&+D.ha>=8)red.push('Severe headache ('+D.ha+'/10). If sudden or the worst ever, call 999. Otherwise call neurosurgery now.');
+  if(D.temp&&+D.temp>=38)amb.push('Temperature '+D.temp+'°C. Fever can mean shunt or wound infection. Call neurosurgery today.');
+  if(D.droop==='worse')amb.push('Eyelid droop is worse. Call neurosurgery the same day.');
+  if(D.dbl==='yes')amb.push('Double vision reported. Call neurosurgery the same day if it is new.');
+  if(D.naps==='Long / hard to wake')amb.push('Long naps or hard to wake. Watch closely; call the team if it continues or she is hard to rouse.');
+  var lim=+cfg.bplimit;if(lim&&D.sys&&+D.sys>lim)amb.push('BP top number '+D.sys+' is above the limit you set ('+lim+'). Recheck after 5 minutes of rest; call the team if it stays high.');
+  return {red:red,amb:amb};
+}
+function renderAlerts(){
+  var a=dayAlerts(day()),el=$('#alerts');el.innerHTML='';
+  a.red.forEach(function(m){el.innerHTML+='<div class="alert red"><b>URGENT</b>'+esc(m)+' <a href="tel:999">Call 999</a></div>'});
+  a.amb.forEach(function(m){el.innerHTML+='<div class="alert amber"><b>Call the team</b>'+esc(m)+(cfg.clinic?' <a href="tel:'+esc(cfg.clinic)+'">Call clinic</a>':'')+'</div>'});
+}
+function renderDay(){
+  var t=parse(cur),today=fmt(new Date());
+  $('#dlabel').innerHTML=t.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short',year:'numeric'})+(cur===today?'<div class="small">Today</div>':'');
+  $('#next').style.visibility=cur>=today?'hidden':'visible';
+  renderChecks();renderEye();renderHA();bindInputs();renderAlerts();
+}
+$('#prev').onclick=function(){var d=parse(cur);d.setDate(d.getDate()-1);cur=fmt(d);renderDay()};
+$('#next').onclick=function(){var d=parse(cur);d.setDate(d.getDate()+1);if(fmt(d)<=fmt(new Date())){cur=fmt(d);renderDay()}};
+
+// WEEKLY
+function monday(d){var x=new Date(d);var g=(x.getDay()+6)%7;x.setDate(x.getDate()-g);return fmt(x)}
+var wk=monday(new Date());
+function wdata(){return weeks[wk]||(weeks[wk]={})}
+var WSEG=[['energy','Energy and stamina'],['walkdist','Walking distance'],['self','Self-care (wash, dress, eat)'],['mem','Memory and focus'],['mood','Mood'],['hatrend','Headaches']];
+function wpersist(){save('rt_weeks',weeks)}
+function renderWeek(){
+  var W=wdata(),t=parse(wk),e=new Date(t);e.setDate(e.getDate()+6);
+  $('#wlabel').innerHTML='Week of '+t.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' – '+e.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+(wk===monday(new Date())?'<div class="small">This week</div>':'');
+  $('#wnext').style.visibility=wk>=monday(new Date())?'hidden':'visible';
+  var el=$('#wseg');el.innerHTML='';
+  WSEG.forEach(function(s){
+    var r=document.createElement('div');r.className='row';r.innerHTML='<label class="t">'+s[1]+'</label>';
+    r.appendChild(seg([['Better','better'],['Same','same'],['Worse','worse','bad']],W[s[0]],function(v){W[s[0]]=v;wpersist();renderWeek()}));
+    el.appendChild(r)});
+  [['wphoto','photo'],['wdrops','drops']].forEach(function(p){
+    var n=$('#'+p[0]),on=W[p[1]]==='1';n.className='tick'+(on?' on':'');n.textContent=on?'✓':'';
+    n.parentNode.onclick=function(){vib();W[p[1]]=on?'':'1';wpersist();renderWeek()}});
+  var lid=$('#wlid');lid.value=W.lid||'';lid.onchange=function(){W.lid=lid.value;wpersist()};
+  var kg=$('#wkg');kg.value=W.kg||'';kg.oninput=function(){W.kg=kg.value;wpersist()};
+  var n=$('#wnotes');n.value=W.notes||'';n.oninput=function(){W.notes=n.value;wpersist()};
+}
+$('#wprev').onclick=function(){var d=parse(wk);d.setDate(d.getDate()-7);wk=fmt(d);renderWeek()};
+$('#wnext').onclick=function(){var d=parse(wk);d.setDate(d.getDate()+7);if(fmt(d)<=monday(new Date())){wk=fmt(d);renderWeek()}};
+
+// DATES
+function renderDates(){
+  var el=$('#dates');el.innerHTML='';
+  dates.forEach(function(x,i){
+    var r=document.createElement('div');r.className='date-row';
+    var cd='';
+    if(x.date){var diff=Math.round((parse(x.date)-parse(fmt(new Date())))/86400000);
+      cd=diff>0?'In '+diff+' day'+(diff===1?'':'s'):diff===0?'Today':Math.abs(diff)+' day'+(Math.abs(diff)===1?'':'s')+' ago'}
+    r.innerHTML='<div class="l">'+esc(x.label)+'</div><input type="date" value="'+esc(x.date)+'">'+(cd?'<div class="cd'+(cd.indexOf('ago')>-1?' past':'')+'">'+cd+'</div>':'');
+    r.querySelector('input').onchange=function(e){x.date=e.target.value;save('rt_dates',dates);renderDates()};
+    el.appendChild(r)});
+  var q=$('#qs');q.innerHTML='';
+  QS.forEach(function(x){
+    var r=document.createElement('div');r.className='row';var on=qs[x[0]]==='1';
+    r.innerHTML='<label class="t">'+x[1]+'</label><div class="tick'+(on?' on':'')+'">'+(on?'✓':'')+'</div>';
+    r.onclick=function(){vib();qs[x[0]]=on?'':'1';save('rt_q',qs);renderDates()};q.appendChild(r)});
+  var c=$('#clinic');c.value=cfg.clinic||'';c.oninput=function(){cfg.clinic=c.value;save('rt_cfg',cfg);updClinic()};
+  var b=$('#bplimit');b.value=cfg.bplimit||'';b.oninput=function(){cfg.bplimit=b.value;save('rt_cfg',cfg);renderAlerts()};
+}
+function updClinic(){var a=$('#callclinic');if(cfg.clinic){a.href='tel:'+cfg.clinic;a.textContent='Call clinic: '+cfg.clinic}else{a.href='#';a.textContent='Call clinic (add number in Dates tab)'}}
+
+// HISTORY
+function lastDays(n){var out=[],d=new Date();for(var i=0;i<n;i++){var k=fmt(d);out.push([k,days[k]||{}]);d.setDate(d.getDate()-1)}return out}
+function renderHist(){
+  var h='<table><tr><th>Date</th><th>BP</th><th>Pulse</th><th>Temp</th><th>HA</th><th>Flags</th></tr>';
+  lastDays(14).forEach(function(r){
+    var D=r[1],a=dayAlerts(D),f=a.red.length?'URGENT':a.amb.length?'Check':'';
+    var has=Object.keys(D).length>0;
+    var dt=parse(r[0]).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    h+='<tr><td>'+dt+'</td><td>'+(D.sys&&D.dia?D.sys+'/'+D.dia:'–')+'</td><td>'+(D.pulse||'–')+'</td><td>'+(D.temp||'–')+'</td><td>'+(D.ha!==undefined&&D.ha!==''?D.ha:'–')+'</td><td'+(f?' class="f"':'')+'>'+(has?(f||'OK'):'')+'</td></tr>'});
+  $('#hist').innerHTML=h+'</table>';
+}
+function summary(){
+  var s='Recovery summary (last 14 days)\n\n';
+  lastDays(14).reverse().forEach(function(r){var D=r[1];if(!Object.keys(D).length)return;
+    s+=r[0]+': BP '+(D.sys&&D.dia?D.sys+'/'+D.dia:'-')+', pulse '+(D.pulse||'-')+', temp '+(D.temp||'-')+', headache '+(D.ha||'-')+'/10, sleep '+(D.sleep||'-')+'h';
+    var bits=[];if(D.droop)bits.push('droop '+D.droop);if(D.dbl==='yes')bits.push('double vision');if(D.pupil==='larger')bits.push('right pupil larger');
+    SEGS.forEach(function(x){if(D[x[0]]==='bad')bits.push('problem: '+x[1])});
+    if(bits.length)s+=' ['+bits.join(', ')+']';if(D.notes)s+=' Note: '+D.notes;s+='\n'});
+  var ks=Object.keys(weeks).sort().slice(-2);
+  if(ks.length){s+='\nWeekly:\n';ks.forEach(function(k){var W=weeks[k];s+='Week of '+k+': lid '+(W.lid||'-')+', energy '+(W.energy||'-')+', walking '+(W.walkdist||'-')+', memory '+(W.mem||'-')+', mood '+(W.mood||'-')+', weight '+(W.kg||'-')+'\n'})}
+  return s;
+}
+$('#copy').onclick=function(){
+  var s=summary();
+  function fb(){var t=document.createElement('textarea');t.value=s;document.body.appendChild(t);t.select();try{document.execCommand('copy');toast('Copied')}catch(e){toast('Could not copy')}document.body.removeChild(t)}
+  if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(s).then(function(){toast('Copied')},fb);else fb();
+};
+$('#wipe').onclick=function(){if(confirm('Erase all tracker data on this phone? This cannot be undone.')){['rt_days','rt_weeks','rt_cfg','rt_q','rt_dates'].forEach(function(k){try{localStorage.removeItem(k)}catch(e){}});days={};weeks={};cfg={clinic:'',bplimit:''};qs={};dates=DATES_DEFAULT.map(function(x){return{id:x.id,label:x.label,date:x.date}});renderAll();toast('Erased')}};
+
+// NAV
+document.querySelectorAll('nav button').forEach(function(b){b.onclick=function(){
+  document.querySelectorAll('nav button').forEach(function(x){x.classList.toggle('on',x===b)});
+  ['today','week','dates','hist','warn'].forEach(function(t){$('#tab-'+t).classList.toggle('hide',t!==b.dataset.t)});
+  $('#alerts').classList.toggle('hide',b.dataset.t!=='today');
+  if(b.dataset.t==='hist')renderHist();if(b.dataset.t==='week')renderWeek();if(b.dataset.t==='dates')renderDates();
+  window.scrollTo(0,0)}});
+function renderAll(){renderDay();renderWeek();renderDates();renderHist();updClinic()}
+renderAll();
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
+</script>
+</body>
+</html>
