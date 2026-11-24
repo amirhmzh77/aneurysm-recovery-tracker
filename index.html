@@ -100,6 +100,10 @@ td.f{color:#c0392b;font-weight:700}
       <div class="field" style="margin-top:12px"><label>Headache (0 = none, 10 = worst)</label><div class="ha" id="ha"></div></div>
     </div>
     <div class="card">
+      <h2>Nausea &amp; vomiting</h2>
+      <div id="gut"></div>
+    </div>
+    <div class="card">
       <h2>Right eye</h2>
       <div id="eye"></div>
     </div>
@@ -221,7 +225,7 @@ function day(){return days[cur]||(days[cur]={})}
 
 // segmented critical checks: ok / problem
 var SEGS=[['alert','Awake normally, easy to wake'],['face','Smile even on both sides'],['arms','Both arms raise equally'],['speech','Speech clear, makes sense'],['orient','Knows day, place, people']];
-var TICKS=[['meds','All medicines taken'],['walk','Walking steady'],['wound','Wounds clean: scalp, shunt path, belly'],['eat','Eating and drinking OK, no vomiting'],['drops','Eye drops / eye care done']];
+var TICKS=[['meds','All medicines taken'],['walk','Walking steady'],['wound','Wounds clean: scalp, shunt path, belly'],['eat','Eating and drinking OK'],['drops','Eye drops / eye care done']];
 
 function seg(opts,val,cb,id){
   var d=document.createElement('div');d.className='seg';
@@ -262,6 +266,16 @@ function renderEye(){
     r.appendChild(seg(x[2],D[x[1]],function(v){D[x[1]]=v;persist();renderEye();renderAlerts()}));
     el.appendChild(r)});
 }
+function renderGut(){
+  var el=$('#gut');el.innerHTML='';var D=day();
+  var rows=[['Nausea (feeling sick)','nausea',[['None','none'],['Mild','mild','warn'],['Strong','strong','bad']]],
+            ['Vomiting today','vomit',[['0','0'],['1 time','1','warn'],['2 or more','2','bad']]]];
+  rows.forEach(function(x){
+    var r=document.createElement('div');r.className='row';
+    r.innerHTML='<label class="t">'+x[0]+'</label>';
+    r.appendChild(seg(x[2],D[x[1]],function(v){D[x[1]]=v;persist();renderGut();renderAlerts()}));
+    el.appendChild(r)});
+}
 function renderHA(){
   var el=$('#ha');el.innerHTML='';var D=day();
   for(var i=0;i<=10;i++){(function(i){
@@ -280,7 +294,10 @@ function dayAlerts(D){
   var bad=SEGS.filter(function(s){return D[s[0]]==='bad'}).map(function(s){return s[1]});
   if(bad.length)red.push('Problem flagged: '+bad.join('; ')+'. These can be stroke or brain-pressure signs. Call 999.');
   if(D.pupil==='larger')red.push('Right pupil larger than left. If this is new, treat it as urgent: call 999 or go to emergency.');
+  if(D.vomit==='2')red.push('Vomited 2 or more times. Repeated vomiting after brain surgery with a shunt needs urgent checking. Call neurosurgery now or go to emergency, especially with a headache or drowsiness.');
   if(D.ha&&+D.ha>=8)red.push('Severe headache ('+D.ha+'/10). If sudden or the worst ever, call 999. Otherwise call neurosurgery now.');
+  if(D.vomit==='1')amb.push('Vomited once'+(D.ha&&+D.ha>=1?' with a headache':'')+'. Call neurosurgery today. If it happens again, or she is drowsy, go to emergency.');
+  if(D.nausea==='strong'&&D.vomit!=='2')amb.push('Strong nausea. Call neurosurgery today, especially if there is a headache. Go to emergency if she starts vomiting repeatedly.');
   if(D.temp&&+D.temp>=38)amb.push('Temperature '+D.temp+'°C. Fever can mean shunt or wound infection. Call neurosurgery today.');
   if(D.droop==='worse')amb.push('Eyelid droop is worse. Call neurosurgery the same day.');
   if(D.dbl==='yes')amb.push('Double vision reported. Call neurosurgery the same day if it is new.');
@@ -297,7 +314,7 @@ function renderDay(){
   var t=parse(cur),today=fmt(new Date());
   $('#dlabel').innerHTML=t.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short',year:'numeric'})+(cur===today?'<div class="small">Today</div>':'');
   $('#next').style.visibility=cur>=today?'hidden':'visible';
-  renderChecks();renderEye();renderHA();bindInputs();renderAlerts();
+  renderChecks();renderGut();renderEye();renderHA();bindInputs();renderAlerts();
 }
 $('#prev').onclick=function(){var d=parse(cur);d.setDate(d.getDate()-1);cur=fmt(d);renderDay()};
 $('#next').onclick=function(){var d=parse(cur);d.setDate(d.getDate()+1);if(fmt(d)<=fmt(new Date())){cur=fmt(d);renderDay()}};
@@ -363,7 +380,7 @@ function summary(){
   var s='Recovery summary (last 14 days)\n\n';
   lastDays(14).reverse().forEach(function(r){var D=r[1];if(!Object.keys(D).length)return;
     s+=r[0]+': BP '+(D.sys&&D.dia?D.sys+'/'+D.dia:'-')+', pulse '+(D.pulse||'-')+', temp '+(D.temp||'-')+', headache '+(D.ha||'-')+'/10, sleep '+(D.sleep||'-')+'h';
-    var bits=[];if(D.droop)bits.push('droop '+D.droop);if(D.dbl==='yes')bits.push('double vision');if(D.pupil==='larger')bits.push('right pupil larger');
+    var bits=[];if(D.nausea&&D.nausea!=='none')bits.push('nausea '+D.nausea);if(D.vomit&&D.vomit!=='0')bits.push('vomited '+D.vomit);if(D.droop)bits.push('droop '+D.droop);if(D.dbl==='yes')bits.push('double vision');if(D.pupil==='larger')bits.push('right pupil larger');
     SEGS.forEach(function(x){if(D[x[0]]==='bad')bits.push('problem: '+x[1])});
     if(bits.length)s+=' ['+bits.join(', ')+']';if(D.notes)s+=' Note: '+D.notes;s+='\n'});
   var ks=Object.keys(weeks).sort().slice(-2);
