@@ -88,11 +88,13 @@ td.f{color:#c0392b;font-weight:700}
       <div id="checks"></div>
     </div>
     <div class="card">
-      <h2>Readings</h2>
+      <h2>Blood pressure</h2>
+      <div id="bp"></div>
+      <p class="small">Sit quietly for 5 minutes first. Take the reading, then record it under the time of day.</p>
+    </div>
+    <div class="card">
+      <h2>Other readings</h2>
       <div class="grid">
-        <div class="field"><label>BP systolic (top)</label><input type="number" inputmode="numeric" id="sys" placeholder="e.g. 120"></div>
-        <div class="field"><label>BP diastolic (bottom)</label><input type="number" inputmode="numeric" id="dia" placeholder="e.g. 80"></div>
-        <div class="field"><label>Pulse</label><input type="number" inputmode="numeric" id="pulse" placeholder="bpm"></div>
         <div class="field"><label>Temperature °C</label><input type="number" inputmode="decimal" step="0.1" id="temp" placeholder="e.g. 36.8"></div>
         <div class="field"><label>Sleep (hours)</label><input type="number" inputmode="decimal" step="0.5" id="sleep" placeholder="e.g. 7"></div>
         <div class="field"><label>Naps in the day</label><select id="naps"><option value="">–</option><option>None</option><option>Short</option><option>Long / hard to wake</option></select></div>
@@ -220,6 +222,7 @@ var QS=[
  ['after','After-hours number saved in phone'],
  ['rehab','Rehab referral only if weakness, unsteadiness, thinking problems or severe tiredness appear']];
 
+Object.keys(days).forEach(function(k){var D=days[k];if(D.sys&&!D.bp){D.bp={am:{s:D.sys,d:D.dia,p:D.pulse}}}});
 var cur=fmt(new Date());
 function day(){return days[cur]||(days[cur]={})}
 
@@ -266,6 +269,24 @@ function renderEye(){
     r.appendChild(seg(x[2],D[x[1]],function(v){D[x[1]]=v;persist();renderEye();renderAlerts()}));
     el.appendChild(r)});
 }
+var BPS=[['am','Morning'],['pm','Afternoon'],['nt','Night']];
+function bpOf(D){var b=D.bp||{};return BPS.map(function(x){var r=b[x[0]]||{};return r.s&&r.d?r.s+'/'+r.d:'–'})}
+function bpTxt(D){var a=bpOf(D);return a.every(function(x){return x==='–'})?'–':a.join(' · ')}
+function pulseOf(D){var b=D.bp||{};for(var i=BPS.length-1;i>=0;i--){var r=b[BPS[i][0]];if(r&&r.p)return r.p}return ''}
+function renderBP(){
+  var el=$('#bp');el.innerHTML='';var D=day();D.bp=D.bp||{};
+  BPS.forEach(function(x){
+    var R=D.bp[x[0]]||(D.bp[x[0]]={});
+    var w=document.createElement('div');w.className='date-row';
+    w.innerHTML='<div class="l"><b>'+x[1]+'</b></div><div class="grid" style="grid-template-columns:1fr 1fr 1fr">'+
+      '<div class="field"><label>Top</label><input type="number" inputmode="numeric" data-k="s" placeholder="120"></div>'+
+      '<div class="field"><label>Bottom</label><input type="number" inputmode="numeric" data-k="d" placeholder="80"></div>'+
+      '<div class="field"><label>Pulse</label><input type="number" inputmode="numeric" data-k="p" placeholder="bpm"></div></div>';
+    w.querySelectorAll('input').forEach(function(i){
+      i.value=R[i.dataset.k]||'';
+      i.oninput=function(){R[i.dataset.k]=i.value;persist();renderAlerts()}});
+    el.appendChild(w)});
+}
 function renderGut(){
   var el=$('#gut');el.innerHTML='';var D=day();
   var rows=[['Nausea (feeling sick)','nausea',[['None','none'],['Mild','mild','warn'],['Strong','strong','bad']]],
@@ -284,7 +305,7 @@ function renderHA(){
     b.onclick=function(){vib();D.ha=D.ha===String(i)?'':String(i);persist();renderHA();renderAlerts()};el.appendChild(b)})(i)}
 }
 function bindInputs(){
-  ['sys','dia','pulse','temp','sleep','naps','notes'].forEach(function(k){
+  ['temp','sleep','naps','notes'].forEach(function(k){
     var e=$('#'+k);e.value=day()[k]||'';
     e.oninput=e.onchange=function(){day()[k]=e.value;persist();renderAlerts()}});
 }
@@ -302,7 +323,10 @@ function dayAlerts(D){
   if(D.droop==='worse')amb.push('Eyelid droop is worse. Call neurosurgery the same day.');
   if(D.dbl==='yes')amb.push('Double vision reported. Call neurosurgery the same day if it is new.');
   if(D.naps==='Long / hard to wake')amb.push('Long naps or hard to wake. Watch closely; call the team if it continues or she is hard to rouse.');
-  var lim=+cfg.bplimit;if(lim&&D.sys&&+D.sys>lim)amb.push('BP top number '+D.sys+' is above the limit you set ('+lim+'). Recheck after 5 minutes of rest; call the team if it stays high.');
+  var lim=+cfg.bplimit,b=D.bp||{};
+  BPS.forEach(function(x){var r=b[x[0]];if(!r||!r.s)return;var sy=+r.s,di=+r.d;
+    if(sy>=180||di>=120)red.push('Very high BP at '+x[1].toLowerCase()+' ('+r.s+'/'+r.d+'). Sit quietly 5 minutes and recheck. If still 180/120 or higher, or she has a headache, vomiting, drowsiness, weakness or speech trouble, go to emergency.');
+    else if(lim&&sy>lim)amb.push('BP top number '+r.s+' ('+x[1].toLowerCase()+') is above your limit of '+lim+'. Recheck after 5 minutes of rest; call the team if it stays high.')});
   return {red:red,amb:amb};
 }
 function renderAlerts(){
@@ -314,7 +338,7 @@ function renderDay(){
   var t=parse(cur),today=fmt(new Date());
   $('#dlabel').innerHTML=t.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'short',year:'numeric'})+(cur===today?'<div class="small">Today</div>':'');
   $('#next').style.visibility=cur>=today?'hidden':'visible';
-  renderChecks();renderGut();renderEye();renderHA();bindInputs();renderAlerts();
+  renderChecks();renderBP();renderGut();renderEye();renderHA();bindInputs();renderAlerts();
 }
 $('#prev').onclick=function(){var d=parse(cur);d.setDate(d.getDate()-1);cur=fmt(d);renderDay()};
 $('#next').onclick=function(){var d=parse(cur);d.setDate(d.getDate()+1);if(fmt(d)<=fmt(new Date())){cur=fmt(d);renderDay()}};
@@ -368,18 +392,18 @@ function updClinic(){var a=$('#callclinic');if(cfg.clinic){a.href='tel:'+cfg.cli
 // HISTORY
 function lastDays(n){var out=[],d=new Date();for(var i=0;i<n;i++){var k=fmt(d);out.push([k,days[k]||{}]);d.setDate(d.getDate()-1)}return out}
 function renderHist(){
-  var h='<table><tr><th>Date</th><th>BP</th><th>Pulse</th><th>Temp</th><th>HA</th><th>Flags</th></tr>';
+  var h='<table><tr><th>Date</th><th>BP M·A·N</th><th>Pulse</th><th>Temp</th><th>HA</th><th>Flags</th></tr>';
   lastDays(14).forEach(function(r){
     var D=r[1],a=dayAlerts(D),f=a.red.length?'URGENT':a.amb.length?'Check':'';
     var has=Object.keys(D).length>0;
     var dt=parse(r[0]).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-    h+='<tr><td>'+dt+'</td><td>'+(D.sys&&D.dia?D.sys+'/'+D.dia:'–')+'</td><td>'+(D.pulse||'–')+'</td><td>'+(D.temp||'–')+'</td><td>'+(D.ha!==undefined&&D.ha!==''?D.ha:'–')+'</td><td'+(f?' class="f"':'')+'>'+(has?(f||'OK'):'')+'</td></tr>'});
+    h+='<tr><td>'+dt+'</td><td style="font-size:11.5px">'+bpTxt(D)+'</td><td>'+(pulseOf(D)||'–')+'</td><td>'+(D.temp||'–')+'</td><td>'+(D.ha!==undefined&&D.ha!==''?D.ha:'–')+'</td><td'+(f?' class="f"':'')+'>'+(has?(f||'OK'):'')+'</td></tr>'});
   $('#hist').innerHTML=h+'</table>';
 }
 function summary(){
   var s='Recovery summary (last 14 days)\n\n';
   lastDays(14).reverse().forEach(function(r){var D=r[1];if(!Object.keys(D).length)return;
-    s+=r[0]+': BP '+(D.sys&&D.dia?D.sys+'/'+D.dia:'-')+', pulse '+(D.pulse||'-')+', temp '+(D.temp||'-')+', headache '+(D.ha||'-')+'/10, sleep '+(D.sleep||'-')+'h';
+    s+=r[0]+': BP morning/afternoon/night '+bpTxt(D)+', pulse '+(pulseOf(D)||'-')+', temp '+(D.temp||'-')+', headache '+(D.ha||'-')+'/10, sleep '+(D.sleep||'-')+'h';
     var bits=[];if(D.nausea&&D.nausea!=='none')bits.push('nausea '+D.nausea);if(D.vomit&&D.vomit!=='0')bits.push('vomited '+D.vomit);if(D.droop)bits.push('droop '+D.droop);if(D.dbl==='yes')bits.push('double vision');if(D.pupil==='larger')bits.push('right pupil larger');
     SEGS.forEach(function(x){if(D[x[0]]==='bad')bits.push('problem: '+x[1])});
     if(bits.length)s+=' ['+bits.join(', ')+']';if(D.notes)s+=' Note: '+D.notes;s+='\n'});
