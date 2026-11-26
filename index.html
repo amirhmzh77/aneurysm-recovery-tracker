@@ -228,7 +228,7 @@ function day(){return days[cur]||(days[cur]={})}
 
 // segmented critical checks: ok / problem
 var SEGS=[['alert','Awake normally, easy to wake'],['face','Smile even on both sides'],['arms','Both arms raise equally'],['speech','Speech clear, makes sense'],['orient','Knows day, place, people']];
-var TICKS=[['meds','All medicines taken'],['walk','Walking steady'],['wound','Wounds clean: scalp, shunt path, belly'],['eat','Eating and drinking OK'],['drops','Eye drops / eye care done']];
+var TICKS=[['meds','All medicines taken'],['walkam','Walked this morning'],['walkev','Walked this evening'],['walk','Walking steady'],['wound','Wounds clean: scalp, shunt path, belly'],['eat','Eating and drinking OK'],['drops','Eye drops / eye care done']];
 
 function seg(opts,val,cb,id){
   var d=document.createElement('div');d.className='seg';
@@ -413,7 +413,7 @@ function summary(){
   var s='Recovery summary (last 14 days)\n\n';
   lastDays(14).reverse().forEach(function(r){var D=r[1];if(!Object.keys(D).length)return;
     s+=r[0]+': BP morning/afternoon/night '+bpTxt(D)+', pulse '+(pulseOf(D)||'-')+', temp '+(D.temp||'-')+', headache morning/afternoon/evening '+(hmax(D)<0?'-':haOf(D).join(' · '))+' (/10), sleep '+(D.sleep||'-')+'h';
-    var bits=[];if(D.nausea&&D.nausea!=='none')bits.push('nausea '+D.nausea);if(D.vomit&&D.vomit!=='0')bits.push('vomited '+D.vomit);if(D.droop)bits.push('droop '+D.droop);if(D.dbl==='yes')bits.push('double vision');if(D.pupil==='larger')bits.push('right pupil larger');
+    var bits=[];bits.push('walks: '+(D.walkam==='1'?'morning':'no morning')+', '+(D.walkev==='1'?'evening':'no evening'));if(D.nausea&&D.nausea!=='none')bits.push('nausea '+D.nausea);if(D.vomit&&D.vomit!=='0')bits.push('vomited '+D.vomit);if(D.droop)bits.push('droop '+D.droop);if(D.dbl==='yes')bits.push('double vision');if(D.pupil==='larger')bits.push('right pupil larger');
     SEGS.forEach(function(x){if(D[x[0]]==='bad')bits.push('problem: '+x[1])});
     if(bits.length)s+=' ['+bits.join(', ')+']';if(D.notes)s+=' Note: '+D.notes;s+='\n'});
   var ks=Object.keys(weeks).sort().slice(-2);
