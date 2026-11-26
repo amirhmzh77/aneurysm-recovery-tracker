@@ -99,7 +99,7 @@ td.f{color:#c0392b;font-weight:700}
         <div class="field"><label>Sleep (hours)</label><input type="number" inputmode="decimal" step="0.5" id="sleep" placeholder="e.g. 7"></div>
         <div class="field"><label>Naps in the day</label><select id="naps"><option value="">–</option><option>None</option><option>Short</option><option>Long / hard to wake</option></select></div>
       </div>
-      <div class="field" style="margin-top:12px"><label>Headache (0 = none, 10 = worst)</label><div class="ha" id="ha"></div></div>
+      <div class="field" style="margin-top:12px"><label>Headache (0 = none, 10 = worst)</label><div id="ha"></div></div>
     </div>
     <div class="card">
       <h2>Nausea &amp; vomiting</h2>
@@ -222,7 +222,7 @@ var QS=[
  ['after','After-hours number saved in phone'],
  ['rehab','Rehab referral only if weakness, unsteadiness, thinking problems or severe tiredness appear']];
 
-Object.keys(days).forEach(function(k){var D=days[k];if(D.sys&&!D.bp){D.bp={am:{s:D.sys,d:D.dia,p:D.pulse}}}});
+Object.keys(days).forEach(function(k){var D=days[k];if(D.sys&&!D.bp){D.bp={am:{s:D.sys,d:D.dia,p:D.pulse}}}if(D.ha&&!D.hl){D.hl={am:D.ha}}});
 var cur=fmt(new Date());
 function day(){return days[cur]||(days[cur]={})}
 
@@ -297,12 +297,21 @@ function renderGut(){
     r.appendChild(seg(x[2],D[x[1]],function(v){D[x[1]]=v;persist();renderGut();renderAlerts()}));
     el.appendChild(r)});
 }
+var HSL=[['am','Morning'],['pm','Afternoon'],['ev','Evening']];
+function haOf(D){var h=D.hl||{};return HSL.map(function(x){return h[x[0]]!==undefined&&h[x[0]]!==''?h[x[0]]:'–'})}
+function hmax(D){var m=-1;haOf(D).forEach(function(v){if(v!=='–'&&+v>m)m=+v});return m}
 function renderHA(){
-  var el=$('#ha');el.innerHTML='';var D=day();
-  for(var i=0;i<=10;i++){(function(i){
-    var b=document.createElement('button');b.textContent=i;
-    if(D.ha===String(i))b.className='on'+(i>=8?' hi':'');
-    b.onclick=function(){vib();D.ha=D.ha===String(i)?'':String(i);persist();renderHA();renderAlerts()};el.appendChild(b)})(i)}
+  var el=$('#ha');el.innerHTML='';var D=day();D.hl=D.hl||{};
+  HSL.forEach(function(x){
+    var w=document.createElement('div');w.style.marginTop='8px';
+    w.innerHTML='<div class="small" style="margin-bottom:4px"><b>'+x[1]+'</b></div>';
+    var row=document.createElement('div');row.className='ha';
+    for(var i=0;i<=10;i++){(function(i){
+      var b=document.createElement('button');b.textContent=i;
+      if(D.hl[x[0]]===String(i))b.className='on'+(i>=8?' hi':'');
+      b.onclick=function(){vib();D.hl[x[0]]=D.hl[x[0]]===String(i)?'':String(i);persist();renderHA();renderAlerts()};
+      row.appendChild(b)})(i)}
+    w.appendChild(row);el.appendChild(w)});
 }
 function bindInputs(){
   ['temp','sleep','naps','notes'].forEach(function(k){
@@ -316,8 +325,8 @@ function dayAlerts(D){
   if(bad.length)red.push('Problem flagged: '+bad.join('; ')+'. These can be stroke or brain-pressure signs. Call 999.');
   if(D.pupil==='larger')red.push('Right pupil larger than left. If this is new, treat it as urgent: call 999 or go to emergency.');
   if(D.vomit==='2')red.push('Vomited 2 or more times. Repeated vomiting after brain surgery with a shunt needs urgent checking. Call neurosurgery now or go to emergency, especially with a headache or drowsiness.');
-  if(D.ha&&+D.ha>=8)red.push('Severe headache ('+D.ha+'/10). If sudden or the worst ever, call 999. Otherwise call neurosurgery now.');
-  if(D.vomit==='1')amb.push('Vomited once'+(D.ha&&+D.ha>=1?' with a headache':'')+'. Call neurosurgery today. If it happens again, or she is drowsy, go to emergency.');
+  if(hmax(D)>=8)red.push('Severe headache ('+hmax(D)+'/10). If sudden or the worst ever, call 999. Otherwise call neurosurgery now.');
+  if(D.vomit==='1')amb.push('Vomited once'+(hmax(D)>=1?' with a headache':'')+'. Call neurosurgery today. If it happens again, or she is drowsy, go to emergency.');
   if(D.nausea==='strong'&&D.vomit!=='2')amb.push('Strong nausea. Call neurosurgery today, especially if there is a headache. Go to emergency if she starts vomiting repeatedly.');
   if(D.temp&&+D.temp>=38)amb.push('Temperature '+D.temp+'°C. Fever can mean shunt or wound infection. Call neurosurgery today.');
   if(D.droop==='worse')amb.push('Eyelid droop is worse. Call neurosurgery the same day.');
@@ -392,18 +401,18 @@ function updClinic(){var a=$('#callclinic');if(cfg.clinic){a.href='tel:'+cfg.cli
 // HISTORY
 function lastDays(n){var out=[],d=new Date();for(var i=0;i<n;i++){var k=fmt(d);out.push([k,days[k]||{}]);d.setDate(d.getDate()-1)}return out}
 function renderHist(){
-  var h='<table><tr><th>Date</th><th>BP M·A·N</th><th>Pulse</th><th>Temp</th><th>HA</th><th>Flags</th></tr>';
+  var h='<table><tr><th>Date</th><th>BP M·A·N</th><th>Pulse</th><th>Temp</th><th>Headache M·A·E</th><th>Flags</th></tr>';
   lastDays(14).forEach(function(r){
     var D=r[1],a=dayAlerts(D),f=a.red.length?'URGENT':a.amb.length?'Check':'';
     var has=Object.keys(D).length>0;
     var dt=parse(r[0]).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-    h+='<tr><td>'+dt+'</td><td style="font-size:11.5px">'+bpTxt(D)+'</td><td>'+(pulseOf(D)||'–')+'</td><td>'+(D.temp||'–')+'</td><td>'+(D.ha!==undefined&&D.ha!==''?D.ha:'–')+'</td><td'+(f?' class="f"':'')+'>'+(has?(f||'OK'):'')+'</td></tr>'});
+    h+='<tr><td>'+dt+'</td><td style="font-size:11.5px">'+bpTxt(D)+'</td><td>'+(pulseOf(D)||'–')+'</td><td>'+(D.temp||'–')+'</td><td style="font-size:11.5px">'+(hmax(D)<0?'–':haOf(D).join(' · '))+'</td><td'+(f?' class="f"':'')+'>'+(has?(f||'OK'):'')+'</td></tr>'});
   $('#hist').innerHTML=h+'</table>';
 }
 function summary(){
   var s='Recovery summary (last 14 days)\n\n';
   lastDays(14).reverse().forEach(function(r){var D=r[1];if(!Object.keys(D).length)return;
-    s+=r[0]+': BP morning/afternoon/night '+bpTxt(D)+', pulse '+(pulseOf(D)||'-')+', temp '+(D.temp||'-')+', headache '+(D.ha||'-')+'/10, sleep '+(D.sleep||'-')+'h';
+    s+=r[0]+': BP morning/afternoon/night '+bpTxt(D)+', pulse '+(pulseOf(D)||'-')+', temp '+(D.temp||'-')+', headache morning/afternoon/evening '+(hmax(D)<0?'-':haOf(D).join(' · '))+' (/10), sleep '+(D.sleep||'-')+'h';
     var bits=[];if(D.nausea&&D.nausea!=='none')bits.push('nausea '+D.nausea);if(D.vomit&&D.vomit!=='0')bits.push('vomited '+D.vomit);if(D.droop)bits.push('droop '+D.droop);if(D.dbl==='yes')bits.push('double vision');if(D.pupil==='larger')bits.push('right pupil larger');
     SEGS.forEach(function(x){if(D[x[0]]==='bad')bits.push('problem: '+x[1])});
     if(bits.length)s+=' ['+bits.join(', ')+']';if(D.notes)s+=' Note: '+D.notes;s+='\n'});
